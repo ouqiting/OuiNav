@@ -81,8 +81,10 @@ function renderLinks() {
     const card = elements.cardTemplate.content.firstElementChild.cloneNode(true);
     const index = card.querySelector(".service-index");
     const cardLink = card.querySelector(".service-main");
-    const title = card.querySelector("h3");
+    const title = card.querySelector(".service-title-text");
     const description = card.querySelector("p");
+    const inlineIcon = card.querySelector(".service-inline-icon");
+    const inlineIconImage = card.querySelector(".service-inline-icon-image");
     const editButton = card.querySelector(".edit-button");
     const deleteButton = card.querySelector(".delete-button");
 
@@ -90,6 +92,11 @@ function renderLinks() {
     cardLink.href = link.url;
     title.textContent = link.name;
     description.textContent = link.description || "未填写描述";
+
+    if (link.icon) {
+      inlineIconImage.src = link.icon;
+      inlineIcon.classList.remove("hidden");
+    }
 
     editButton.addEventListener("click", () => openEditModal(link));
     deleteButton.addEventListener("click", () => handleDeleteLink(link.id));
