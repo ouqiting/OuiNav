@@ -121,7 +121,7 @@
 
           <label class="field">
             <span>图标上传</span>
-            <input id="iconInput" name="icon" type="file" accept="image/*" />
+            <input id="iconInput" name="icon" type="file" accept="image/*,.svg" />
           </label>
 
           <div class="icon-preview-row">
@@ -140,6 +140,9 @@
 
     <template id="serviceCardTemplate">
       <article class="service-card">
+        <button class="drag-handle" type="button" aria-label="长按拖动排序">
+          <img src="./assets/justify.svg" alt="" aria-hidden="true" />
+        </button>
         <div class="service-index"></div>
         <a class="service-main" target="_blank" rel="noreferrer noopener">
           <div class="service-meta">

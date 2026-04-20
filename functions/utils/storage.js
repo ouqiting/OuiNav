@@ -85,6 +85,43 @@ export async function deleteLink(env, id) {
   return nextLinks;
 }
 
+export async function reorderLinks(env, orderIds) {
+  if (!env.NAV_LINKS_KV) {
+    throw new Error("缺少 NAV_LINKS_KV 绑定，无法保存排序。");
+  }
+
+  if (!Array.isArray(orderIds) || !orderIds.length) {
+    throw new Error("排序数据无效。");
+  }
+
+  const links = await readLinks(env);
+  const linkMap = new Map(links.map((item) => [item.id, item]));
+
+  if (linkMap.size !== orderIds.length) {
+    throw new Error("排序数量不匹配。");
+  }
+
+  const nextLinks = orderIds.map((id) => {
+    const normalizedId = String(id || "").trim();
+    const link = linkMap.get(normalizedId);
+
+    if (!link) {
+      throw new Error("排序项中包含未知链接。");
+    }
+
+    linkMap.delete(normalizedId);
+    return link;
+  });
+
+  if (linkMap.size) {
+    throw new Error("排序项不完整。");
+  }
+
+  await env.NAV_LINKS_KV.put(LINKS_KEY, JSON.stringify(nextLinks));
+
+  return nextLinks;
+}
+
 function parseLinks(value) {
   try {
     const parsed = JSON.parse(value);

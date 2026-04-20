@@ -135,7 +135,7 @@ button {
 
 .service-card {
   display: grid;
-  grid-template-columns: 120px minmax(0, 1fr) auto auto;
+  grid-template-columns: 46px 120px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 20px;
   min-height: 128px;
@@ -152,6 +152,33 @@ button {
 .service-card:hover {
   transform: translateY(-2px);
   border-color: var(--border-strong);
+}
+
+.drag-handle {
+  width: 40px;
+  height: 40px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-muted);
+  touch-action: none;
+  user-select: none;
+}
+
+.drag-handle:hover,
+.drag-handle:focus-visible {
+  border-color: var(--border-strong);
+  outline: none;
+}
+
+.drag-handle img {
+  width: 18px;
+  height: 18px;
+  display: block;
+  opacity: 0.72;
+  pointer-events: none;
 }
 
 .service-index {
@@ -180,6 +207,18 @@ button {
 
 .service-main:focus-visible {
   outline: none;
+}
+
+.service-card.sorting-placeholder {
+  border-style: dashed;
+  background: var(--surface-muted);
+  box-shadow: none;
+}
+
+.service-card.dragging {
+  opacity: 0.96;
+  z-index: 60;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.14);
 }
 
 .icon-preview {
@@ -570,17 +609,28 @@ html[data-theme="dark"] .overlay {
   }
 
   .service-card {
-    grid-template-columns: 62px minmax(0, 1fr) auto;
+    grid-template-columns: 30px 52px minmax(0, 1fr) auto;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     min-height: 0;
-    padding: 14px 14px;
+    padding: 12px 10px;
+  }
+
+  .drag-handle {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+  }
+
+  .drag-handle img {
+    width: 12px;
+    height: 12px;
   }
 
   .service-index {
     min-width: 0;
-    padding: 7px 10px;
-    font-size: 0.88rem;
+    padding: 6px 8px;
+    font-size: 0.76rem;
   }
 
   .service-main {
@@ -608,16 +658,16 @@ html[data-theme="dark"] .overlay {
   .service-actions {
     justify-content: flex-end;
     flex-wrap: nowrap;
-    gap: 6px;
+    gap: 4px;
     margin-top: 0;
   }
 
   .action-button {
-    min-width: 54px;
-    min-height: 34px;
-    padding: 0 10px;
-    border-radius: 10px;
-    font-size: 0.82rem;
+    min-width: 44px;
+    min-height: 28px;
+    padding: 0 8px;
+    border-radius: 9px;
+    font-size: 0.74rem;
   }
 
   .icon-preview-row {

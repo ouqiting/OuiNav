@@ -1,6 +1,6 @@
 import { isAuthorized } from "../utils/auth.js";
 import { json } from "../utils/response.js";
-import { createLink, deleteLink, readLinks, updateLink } from "../utils/storage.js";
+import { createLink, deleteLink, readLinks, reorderLinks, updateLink } from "../utils/storage.js";
 
 export async function onRequestGet(context) {
   const authorized = await isAuthorized(context.request, context.env);
@@ -52,7 +52,9 @@ export async function onRequestPut(context) {
   }
 
   try {
-    const links = await updateLink(context.env, body);
+    const links = Array.isArray(body.orderIds)
+      ? await reorderLinks(context.env, body.orderIds)
+      : await updateLink(context.env, body);
     return json({ links });
   } catch (error) {
     return json({ message: error.message || "更新失败。" }, { status: 400 });

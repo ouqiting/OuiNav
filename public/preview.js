@@ -1,4 +1,6 @@
 const THEME_STORAGE_KEY = "ouinav-theme";
+const LONG_PRESS_DELAY_MS = 260;
+const DRAG_CANCEL_DISTANCE = 8;
 
 const state = {
   links: [
@@ -27,6 +29,7 @@ const state = {
   pendingIconDataUrl: "",
   editingId: "",
   theme: "light",
+  sortSession: null,
 };
 
 const elements = {
@@ -80,6 +83,7 @@ function renderLinks() {
 
   state.links.forEach((link, indexValue) => {
     const card = elements.cardTemplate.content.firstElementChild.cloneNode(true);
+    const dragHandle = card.querySelector(".drag-handle");
     const index = card.querySelector(".service-index");
     const cardLink = card.querySelector(".service-main");
     const title = card.querySelector(".service-title-text");
@@ -89,6 +93,7 @@ function renderLinks() {
     const editButton = card.querySelector(".edit-button");
     const deleteButton = card.querySelector(".delete-button");
 
+    card.dataset.id = link.id;
     index.textContent = `#${indexValue + 1}`;
     cardLink.href = link.url;
     title.textContent = link.name;
@@ -101,6 +106,7 @@ function renderLinks() {
 
     editButton.addEventListener("click", () => openEditModal(link));
     deleteButton.addEventListener("click", () => handleDeleteLink(link.id));
+    initializeSortHandle(dragHandle, card, link.id);
 
     fragment.append(card);
   });
@@ -183,6 +189,10 @@ function handleCreateSubmit(event) {
 }
 
 function handleDeleteLink(id) {
+  if (state.sortSession) {
+    return;
+  }
+
   const confirmed = window.confirm("确认删除这个导航项吗？");
 
   if (!confirmed) {
@@ -307,4 +317,183 @@ async function cleanupLegacyServiceWorkers() {
       console.error(error);
     }
   }
+}
+
+function initializeSortHandle(handle, card, linkId) {
+  handle.addEventListener("pointerdown", (pointerDownEvent) => {
+    if (state.sortSession || pointerDownEvent.button === 2) {
+      return;
+    }
+
+    pointerDownEvent.preventDefault();
+
+    let dragStarted = false;
+    const pointerId = pointerDownEvent.pointerId;
+    const startX = pointerDownEvent.clientX;
+    const startY = pointerDownEvent.clientY;
+    const timer = window.setTimeout(() => {
+      dragStarted = true;
+      startSorting(card, linkId, pointerDownEvent.clientX, pointerDownEvent.clientY);
+    }, LONG_PRESS_DELAY_MS);
+
+    const cleanup = () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pointermove", handlePointerMove, true);
+      window.removeEventListener("pointerup", handlePointerUp, true);
+      window.removeEventListener("pointercancel", handlePointerCancel, true);
+    };
+
+    const handlePointerMove = (pointerMoveEvent) => {
+      if (pointerMoveEvent.pointerId !== pointerId) {
+        return;
+      }
+
+      if (!dragStarted) {
+        const movedX = Math.abs(pointerMoveEvent.clientX - startX);
+        const movedY = Math.abs(pointerMoveEvent.clientY - startY);
+
+        if (movedX > DRAG_CANCEL_DISTANCE || movedY > DRAG_CANCEL_DISTANCE) {
+          cleanup();
+        }
+
+        return;
+      }
+
+      updateSorting(pointerMoveEvent.clientX, pointerMoveEvent.clientY);
+    };
+
+    const handlePointerUp = (pointerUpEvent) => {
+      if (pointerUpEvent.pointerId !== pointerId) {
+        return;
+      }
+
+      cleanup();
+
+      if (!dragStarted) {
+        return;
+      }
+
+      finishSorting();
+    };
+
+    const handlePointerCancel = () => {
+      cleanup();
+
+      if (dragStarted) {
+        cancelSorting();
+      }
+    };
+
+    window.addEventListener("pointermove", handlePointerMove, true);
+    window.addEventListener("pointerup", handlePointerUp, true);
+    window.addEventListener("pointercancel", handlePointerCancel, true);
+  });
+}
+
+function startSorting(card, linkId, clientX, clientY) {
+  const rect = card.getBoundingClientRect();
+  const placeholder = card.cloneNode(false);
+  placeholder.className = "service-card sorting-placeholder";
+  placeholder.style.height = `${rect.height}px`;
+  placeholder.dataset.id = linkId;
+
+  card.after(placeholder);
+  card.classList.add("dragging");
+  card.style.position = "fixed";
+  card.style.top = `${rect.top}px`;
+  card.style.left = `${rect.left}px`;
+  card.style.width = `${rect.width}px`;
+  card.style.pointerEvents = "none";
+  card.style.margin = "0";
+
+  state.sortSession = {
+    linkId,
+    card,
+    placeholder,
+    offsetX: clientX - rect.left,
+    offsetY: clientY - rect.top,
+    originalOrder: state.links.map((item) => item.id),
+  };
+}
+
+function updateSorting(clientX, clientY) {
+  const session = state.sortSession;
+
+  if (!session) {
+    return;
+  }
+
+  session.card.style.top = `${clientY - session.offsetY}px`;
+  session.card.style.left = `${clientX - session.offsetX}px`;
+
+  const hovered = document.elementFromPoint(clientX, clientY)?.closest(".service-card");
+
+  if (!hovered || hovered === session.card || hovered === session.placeholder) {
+    return;
+  }
+
+  const hoveredRect = hovered.getBoundingClientRect();
+  const shouldInsertBefore = clientY < hoveredRect.top + hoveredRect.height / 2;
+  const parent = session.placeholder.parentNode;
+
+  if (!parent) {
+    return;
+  }
+
+  parent.insertBefore(session.placeholder, shouldInsertBefore ? hovered : hovered.nextSibling);
+}
+
+function finishSorting() {
+  const session = state.sortSession;
+
+  if (!session) {
+    return;
+  }
+
+  session.placeholder.before(session.card);
+  cleanupSortingSession(session);
+
+  const nextOrder = [...elements.serviceGrid.children]
+    .map((node) => node.dataset.id)
+    .filter(Boolean);
+
+  if (orderChanged(session.originalOrder, nextOrder)) {
+    const linkMap = new Map(state.links.map((item) => [item.id, item]));
+    state.links = nextOrder.map((id) => linkMap.get(id)).filter(Boolean);
+  }
+
+  state.sortSession = null;
+  renderLinks();
+}
+
+function cancelSorting() {
+  const session = state.sortSession;
+
+  if (!session) {
+    return;
+  }
+
+  session.placeholder.before(session.card);
+  cleanupSortingSession(session);
+  state.sortSession = null;
+  renderLinks();
+}
+
+function cleanupSortingSession(session) {
+  session.card.classList.remove("dragging");
+  session.card.style.position = "";
+  session.card.style.top = "";
+  session.card.style.left = "";
+  session.card.style.width = "";
+  session.card.style.pointerEvents = "";
+  session.card.style.margin = "";
+  session.placeholder.remove();
+}
+
+function orderChanged(previousOrder, nextOrder) {
+  if (previousOrder.length !== nextOrder.length) {
+    return true;
+  }
+
+  return previousOrder.some((id, index) => id !== nextOrder[index]);
 }
