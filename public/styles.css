@@ -413,10 +413,6 @@ html[data-theme="dark"] .overlay {
   color: var(--text-main);
 }
 
-.input-with-icon {
-  position: relative;
-}
-
 .field input,
 .field textarea {
   width: 100%;
@@ -429,10 +425,6 @@ html[data-theme="dark"] .overlay {
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
-.input-with-icon input {
-  padding-left: 46px;
-}
-
 .field input:focus,
 .field textarea:focus {
   border-color: rgba(86, 136, 255, 0.9);
@@ -442,17 +434,6 @@ html[data-theme="dark"] .overlay {
 .field textarea {
   resize: vertical;
   min-height: 92px;
-}
-
-.field-icon {
-  position: absolute;
-  top: 50%;
-  left: 14px;
-  width: 18px;
-  height: 18px;
-  transform: translateY(-50%);
-  opacity: 0.62;
-  pointer-events: none;
 }
 
 .password-input-wrap {
@@ -563,11 +544,13 @@ html[data-theme="dark"] .overlay {
   .service-card {
     grid-template-columns: 1fr;
     align-items: start;
-    gap: 16px;
+    gap: 12px;
   }
 
   .service-main {
     align-items: flex-start;
+    display: grid;
+    gap: 6px;
   }
 
   .service-meta h3 {
@@ -581,6 +564,16 @@ html[data-theme="dark"] .overlay {
   .service-actions {
     justify-content: flex-start;
     flex-wrap: wrap;
+    gap: 8px;
+    margin-top: -4px;
+  }
+
+  .action-button {
+    min-width: 68px;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 12px;
+    font-size: 0.95rem;
   }
 
   .icon-preview-row {
