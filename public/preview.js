@@ -1,28 +1,41 @@
 const THEME_STORAGE_KEY = "ouinav-theme";
 
 const state = {
-  authenticated: false,
-  links: [],
+  links: [
+    {
+      id: "1",
+      name: "编程",
+      description: "sk******kq",
+      url: "https://example.com/programming",
+      icon: "",
+    },
+    {
+      id: "2",
+      name: "vercel",
+      description: "sk******Zk",
+      url: "https://vercel.com",
+      icon: "",
+    },
+    {
+      id: "3",
+      name: "API 密钥",
+      description: "sk******TJ",
+      url: "https://example.com/api",
+      icon: "",
+    },
+  ],
   pendingIconDataUrl: "",
   editingId: "",
   theme: "light",
 };
 
 const elements = {
-  authOverlay: document.querySelector("#authOverlay"),
-  authForm: document.querySelector("#authForm"),
-  authError: document.querySelector("#authError"),
-  authSubmit: document.querySelector("#authSubmit"),
-  passwordInput: document.querySelector("#passwordInput"),
-  togglePasswordButton: document.querySelector("#togglePasswordButton"),
   themeToggleButton: document.querySelector("#themeToggleButton"),
   themeIconSun: document.querySelector("#themeIconSun"),
   themeIconMoon: document.querySelector("#themeIconMoon"),
   logoutButton: document.querySelector("#logoutButton"),
-  rememberInput: document.querySelector("#rememberInput"),
   serviceGrid: document.querySelector("#serviceGrid"),
   emptyState: document.querySelector("#emptyState"),
-  topbar: document.querySelector("#topbar"),
   cardTemplate: document.querySelector("#serviceCardTemplate"),
   openCreateButton: document.querySelector("#openCreateButton"),
   createModal: document.querySelector("#createModal"),
@@ -38,56 +51,19 @@ const elements = {
 
 boot();
 
-async function boot() {
+function boot() {
   initializeTheme();
   bindEvents();
-
-  try {
-    const session = await requestJson("/api/session");
-    if (session.authenticated) {
-      unlockUi();
-      await loadLinks();
-      return;
-    }
-  } catch (error) {
-    console.error(error);
-  }
-
-  lockUi();
+  renderLinks();
 }
 
 function bindEvents() {
-  elements.authForm.addEventListener("submit", handleAuthSubmit);
-  elements.togglePasswordButton.addEventListener("click", togglePasswordVisibility);
   elements.themeToggleButton.addEventListener("click", handleThemeToggle);
-  elements.logoutButton.addEventListener("click", handleLogout);
+  elements.logoutButton.addEventListener("click", () => window.alert("预览页不需要登录。"));
   elements.openCreateButton.addEventListener("click", openCreateModal);
   elements.closeCreateButton.addEventListener("click", closeCreateModal);
   elements.createForm.addEventListener("submit", handleCreateSubmit);
   elements.iconInput.addEventListener("change", handleIconChange);
-}
-
-function lockUi() {
-  document.body.classList.add("modal-open");
-  elements.authOverlay.classList.remove("hidden");
-  elements.topbar.classList.add("hidden");
-  elements.openCreateButton.classList.add("hidden");
-  elements.serviceGrid.classList.add("hidden");
-  elements.emptyState.classList.add("hidden");
-}
-
-function unlockUi() {
-  state.authenticated = true;
-  document.body.classList.remove("modal-open");
-  elements.authOverlay.classList.add("hidden");
-  elements.topbar.classList.remove("hidden");
-  elements.openCreateButton.classList.remove("hidden");
-}
-
-async function loadLinks() {
-  const payload = await requestJson("/api/links");
-  state.links = Array.isArray(payload.links) ? payload.links : [];
-  renderLinks();
 }
 
 function renderLinks() {
@@ -126,38 +102,7 @@ function renderLinks() {
   elements.serviceGrid.classList.remove("hidden");
 }
 
-async function handleAuthSubmit(event) {
-  event.preventDefault();
-
-  const formData = new FormData(elements.authForm);
-  const password = String(formData.get("password") || "");
-  const remember = Boolean(formData.get("remember"));
-
-  setButtonLoading(elements.authSubmit, true, "验证中...");
-  hideError(elements.authError);
-
-  try {
-    await requestJson("/api/auth", {
-      method: "POST",
-      body: JSON.stringify({ password, remember }),
-    });
-
-    unlockUi();
-    await loadLinks();
-    elements.authForm.reset();
-    elements.passwordInput.type = "password";
-  } catch (error) {
-    showError(elements.authError, error.message || "密码错误，请重试");
-  } finally {
-    setButtonLoading(elements.authSubmit, false, "登录");
-  }
-}
-
 function openCreateModal() {
-  if (!state.authenticated) {
-    return;
-  }
-
   state.editingId = "";
   elements.editingIdInput.value = "";
   elements.createSubmit.textContent = "添加到主页";
@@ -190,9 +135,7 @@ function openEditModal(link) {
 
 function closeCreateModal() {
   elements.createModal.classList.add("hidden");
-  if (state.authenticated) {
-    document.body.classList.remove("modal-open");
-  }
+  document.body.classList.remove("modal-open");
   elements.createForm.reset();
   state.editingId = "";
   elements.editingIdInput.value = "";
@@ -202,55 +145,44 @@ function closeCreateModal() {
   hideError(elements.createError);
 }
 
-async function handleCreateSubmit(event) {
+function handleCreateSubmit(event) {
   event.preventDefault();
 
   const formData = new FormData(elements.createForm);
-  const payload = {
-    id: state.editingId,
+  const link = {
+    id: state.editingId || crypto.randomUUID(),
     name: String(formData.get("name") || "").trim(),
     url: String(formData.get("url") || "").trim(),
     description: String(formData.get("description") || "").trim(),
     icon: state.pendingIconDataUrl,
   };
 
-  setButtonLoading(elements.createSubmit, true, state.editingId ? "保存中..." : "添加中...");
+  if (!link.name || !link.url) {
+    showError(elements.createError, "名称和网址不能为空。");
+    return;
+  }
+
   hideError(elements.createError);
 
-  try {
-    const response = await requestJson("/api/links", {
-      method: state.editingId ? "PUT" : "POST",
-      body: JSON.stringify(payload),
-    });
-
-    state.links = Array.isArray(response.links) ? response.links : state.links;
-    renderLinks();
-    closeCreateModal();
-  } catch (error) {
-    showError(elements.createError, error.message || "保存失败，请稍后重试。");
-  } finally {
-    setButtonLoading(elements.createSubmit, false, "添加到主页");
+  if (state.editingId) {
+    state.links = state.links.map((item) => (item.id === link.id ? link : item));
+  } else {
+    state.links.unshift(link);
   }
+
+  renderLinks();
+  closeCreateModal();
 }
 
-async function handleDeleteLink(id) {
+function handleDeleteLink(id) {
   const confirmed = window.confirm("确认删除这个导航项吗？");
 
   if (!confirmed) {
     return;
   }
 
-  try {
-    const response = await requestJson("/api/links", {
-      method: "DELETE",
-      body: JSON.stringify({ id }),
-    });
-
-    state.links = Array.isArray(response.links) ? response.links : [];
-    renderLinks();
-  } catch (error) {
-    window.alert(error.message || "删除失败，请稍后重试。");
-  }
+  state.links = state.links.filter((item) => item.id !== id);
+  renderLinks();
 }
 
 async function handleIconChange(event) {
@@ -269,22 +201,6 @@ async function handleIconChange(event) {
   } catch (error) {
     resetIconPreview();
     showError(elements.createError, "图标处理失败，请换一张图片再试。");
-  }
-}
-
-async function handleLogout() {
-  try {
-    await requestJson("/api/auth", { method: "DELETE" });
-  } catch (error) {
-    console.error(error);
-  } finally {
-    state.authenticated = false;
-    state.links = [];
-    elements.serviceGrid.replaceChildren();
-    elements.authForm.reset();
-    elements.passwordInput.type = "password";
-    closeCreateModal();
-    lockUi();
   }
 }
 
@@ -322,40 +238,6 @@ function showError(node, message) {
 function hideError(node) {
   node.textContent = "";
   node.classList.add("hidden");
-}
-
-function setButtonLoading(button, loading, label) {
-  button.disabled = loading;
-  button.textContent = label;
-}
-
-function togglePasswordVisibility() {
-  const nextType = elements.passwordInput.type === "password" ? "text" : "password";
-  elements.passwordInput.type = nextType;
-}
-
-async function requestJson(url, options = {}) {
-  const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
-
-  let payload = {};
-
-  try {
-    payload = await response.json();
-  } catch (error) {
-    payload = {};
-  }
-
-  if (!response.ok) {
-    throw new Error(payload.message || "请求失败，请稍后重试。");
-  }
-
-  return payload;
 }
 
 async function imageFileToDataUrl(file, maxSize) {

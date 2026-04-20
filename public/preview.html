@@ -3,16 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Odysseia Guidance</title>
-    <meta
-      name="description"
-      content="轻量级 VPS 服务导航起始页，支持密码验证与自定义链接。"
-    />
+    <title>OuiNav Preview</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="app">
-      <header class="topbar hidden" id="topbar">
+      <header class="topbar" id="topbar">
         <div class="topbar-actions">
           <button id="themeToggleButton" class="toolbar-button" type="button" aria-label="切换浅色或深色模式">
             <img id="themeIconSun" src="./assets/brightness-high.svg" alt="" aria-hidden="true" />
@@ -50,7 +46,7 @@
         <div class="topbar-create-row">
           <button
             id="openCreateButton"
-            class="create-button hidden"
+            class="create-button"
             type="button"
             aria-haspopup="dialog"
             aria-controls="createModal"
@@ -66,70 +62,12 @@
       </header>
 
       <section class="services-section">
-        <div id="serviceGrid" class="service-grid hidden"></div>
+        <div id="serviceGrid" class="service-grid"></div>
         <div id="emptyState" class="empty-state hidden">
           <p>暂无导航项</p>
         </div>
       </section>
     </main>
-
-    <div
-      id="authOverlay"
-      class="overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="authTitle"
-    >
-      <div class="auth-shell">
-        <div class="modal auth-modal">
-          <div class="auth-heading">
-            <h2 id="authTitle">OuiNav</h2>
-            <p>请输入连接信息以访问管理界面</p>
-          </div>
-
-          <form id="authForm" class="stack-form">
-            <label class="field centered-field">
-              <span>管理密钥:</span>
-              <div class="password-input-wrap">
-                <input
-                  id="passwordInput"
-                  name="password"
-                  type="password"
-                  placeholder="请输入管理密钥"
-                  autocomplete="current-password"
-                  required
-                />
-                <button
-                  id="togglePasswordButton"
-                  class="password-toggle"
-                  type="button"
-                  aria-label="显示或隐藏密码"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M12 5c5.23 0 9.27 3.11 10.75 7-1.48 3.89-5.52 7-10.75 7S2.73 15.89 1.25 12C2.73 8.11 6.77 5 12 5Zm0 2C8.2 7 5.17 9.12 3.51 12 5.17 14.88 8.2 17 12 17s6.83-2.12 8.49-5C18.83 9.12 15.8 7 12 7Zm0 2.5A2.5 2.5 0 1 1 12 14.5a2.5 2.5 0 0 1 0-5Z"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </label>
-
-            <label class="checkbox-field">
-              <input id="rememberInput" name="remember" type="checkbox" />
-              <span>记住密码</span>
-            </label>
-
-            <p id="authError" class="form-error hidden" aria-live="polite">
-              密码错误，请重试
-            </p>
-
-            <button id="authSubmit" class="primary-button" type="submit">
-              登录
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
 
     <div
       id="createModal"
@@ -190,7 +128,7 @@
 
           <div class="icon-preview-row">
             <div id="iconPreview" class="icon-preview">图标预览</div>
-            <p class="muted">图片会自动压缩成小尺寸，便于直接保存到 KV。</p>
+            <p class="muted">本地预览页不会写入服务器，只用于看效果。</p>
           </div>
 
           <p id="createError" class="form-error hidden" aria-live="polite"></p>
@@ -225,6 +163,6 @@
       </article>
     </template>
 
-    <script src="./app.js" type="module"></script>
+    <script src="./preview.js" type="module"></script>
   </body>
 </html>
