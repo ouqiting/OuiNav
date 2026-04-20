@@ -2,6 +2,7 @@ const state = {
   authenticated: false,
   links: [],
   pendingIconDataUrl: "",
+  editingId: "",
 };
 
 const elements = {
@@ -9,11 +10,12 @@ const elements = {
   authForm: document.querySelector("#authForm"),
   authError: document.querySelector("#authError"),
   authSubmit: document.querySelector("#authSubmit"),
+  passwordInput: document.querySelector("#passwordInput"),
+  togglePasswordButton: document.querySelector("#togglePasswordButton"),
   rememberInput: document.querySelector("#rememberInput"),
   serviceGrid: document.querySelector("#serviceGrid"),
   emptyState: document.querySelector("#emptyState"),
-  statusTitle: document.querySelector("#statusTitle"),
-  statusText: document.querySelector("#statusText"),
+  topbar: document.querySelector("#topbar"),
   cardTemplate: document.querySelector("#serviceCardTemplate"),
   openCreateButton: document.querySelector("#openCreateButton"),
   createModal: document.querySelector("#createModal"),
@@ -21,6 +23,7 @@ const elements = {
   createForm: document.querySelector("#createForm"),
   createSubmit: document.querySelector("#createSubmit"),
   createError: document.querySelector("#createError"),
+  editingIdInput: document.querySelector("#editingIdInput"),
   iconInput: document.querySelector("#iconInput"),
   iconPreview: document.querySelector("#iconPreview"),
 };
@@ -46,6 +49,7 @@ async function boot() {
 
 function bindEvents() {
   elements.authForm.addEventListener("submit", handleAuthSubmit);
+  elements.togglePasswordButton.addEventListener("click", togglePasswordVisibility);
   elements.openCreateButton.addEventListener("click", () => openCreateModal());
   elements.closeCreateButton.addEventListener("click", closeCreateModal);
   elements.createModal.addEventListener("click", (event) => {
@@ -60,20 +64,18 @@ function bindEvents() {
 function lockUi() {
   document.body.classList.add("modal-open");
   elements.authOverlay.classList.remove("hidden");
+  elements.topbar.classList.add("hidden");
   elements.openCreateButton.classList.add("hidden");
   elements.serviceGrid.classList.add("hidden");
   elements.emptyState.classList.add("hidden");
-  elements.statusTitle.textContent = "等待验证";
-  elements.statusText.textContent = "输入密码后加载服务列表。支持记住登录状态。";
 }
 
 function unlockUi() {
   state.authenticated = true;
   document.body.classList.remove("modal-open");
   elements.authOverlay.classList.add("hidden");
+  elements.topbar.classList.remove("hidden");
   elements.openCreateButton.classList.remove("hidden");
-  elements.statusTitle.textContent = "验证通过";
-  elements.statusText.textContent = "服务列表已经从服务端读取完成，你可以继续添加新的入口。";
 }
 
 async function loadLinks() {
@@ -95,12 +97,17 @@ function renderLinks() {
 
   for (const link of state.links) {
     const card = elements.cardTemplate.content.firstElementChild.cloneNode(true);
+    const index = card.querySelector(".service-index");
+    const cardLink = card.querySelector(".service-main");
     const title = card.querySelector("h3");
     const description = card.querySelector("p");
     const fallback = card.querySelector(".service-icon-fallback");
     const image = card.querySelector(".service-icon-image");
+    const editButton = card.querySelector(".edit-button");
+    const deleteButton = card.querySelector(".delete-button");
 
-    card.href = link.url;
+    index.textContent = `#${fragment.childElementCount + 1}`;
+    cardLink.href = link.url;
     title.textContent = link.name;
     description.textContent = link.description || "未填写描述";
     fallback.textContent = getInitials(link.name);
@@ -110,6 +117,9 @@ function renderLinks() {
       image.classList.remove("hidden");
       fallback.classList.add("hidden");
     }
+
+    editButton.addEventListener("click", () => openEditModal(link));
+    deleteButton.addEventListener("click", () => handleDeleteLink(link.id));
 
     fragment.append(card);
   }
@@ -150,6 +160,32 @@ function openCreateModal() {
     return;
   }
 
+  state.editingId = "";
+  elements.editingIdInput.value = "";
+  elements.createSubmit.textContent = "添加到主页";
+  document.querySelector("#createTitle").textContent = "添加新的服务链接";
+  document.body.classList.add("modal-open");
+  elements.createModal.classList.remove("hidden");
+}
+
+function openEditModal(link) {
+  state.editingId = link.id;
+  elements.editingIdInput.value = link.id;
+  elements.createForm.elements.name.value = link.name || "";
+  elements.createForm.elements.url.value = link.url || "";
+  elements.createForm.elements.description.value = link.description || "";
+  state.pendingIconDataUrl = link.icon || "";
+
+  if (link.icon) {
+    elements.iconPreview.classList.add("has-image");
+    elements.iconPreview.style.backgroundImage = `url("${link.icon}")`;
+    elements.iconPreview.textContent = "";
+  } else {
+    resetIconPreview();
+  }
+
+  elements.createSubmit.textContent = "保存修改";
+  document.querySelector("#createTitle").textContent = "编辑服务链接";
   document.body.classList.add("modal-open");
   elements.createModal.classList.remove("hidden");
 }
@@ -158,6 +194,10 @@ function closeCreateModal() {
   elements.createModal.classList.add("hidden");
   document.body.classList.remove("modal-open");
   elements.createForm.reset();
+  state.editingId = "";
+  elements.editingIdInput.value = "";
+  elements.createSubmit.textContent = "添加到主页";
+  document.querySelector("#createTitle").textContent = "添加新的服务链接";
   resetIconPreview();
   hideError(elements.createError);
 }
@@ -167,6 +207,7 @@ async function handleCreateSubmit(event) {
 
   const formData = new FormData(elements.createForm);
   const payload = {
+    id: state.editingId,
     name: String(formData.get("name") || "").trim(),
     url: String(formData.get("url") || "").trim(),
     description: String(formData.get("description") || "").trim(),
@@ -178,7 +219,7 @@ async function handleCreateSubmit(event) {
 
   try {
     const response = await requestJson("/api/links", {
-      method: "POST",
+      method: state.editingId ? "PUT" : "POST",
       body: JSON.stringify(payload),
     });
 
@@ -189,6 +230,26 @@ async function handleCreateSubmit(event) {
     showError(elements.createError, error.message || "添加失败，请稍后重试。");
   } finally {
     setButtonLoading(elements.createSubmit, false, "添加到主页");
+  }
+}
+
+async function handleDeleteLink(id) {
+  const confirmed = window.confirm("确认删除这个导航项吗？");
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const response = await requestJson("/api/links", {
+      method: "DELETE",
+      body: JSON.stringify({ id }),
+    });
+
+    state.links = Array.isArray(response.links) ? response.links : [];
+    renderLinks();
+  } catch (error) {
+    window.alert(error.message || "删除失败，请稍后重试。");
   }
 }
 
@@ -231,6 +292,11 @@ function hideError(node) {
 function setButtonLoading(button, loading, label) {
   button.disabled = loading;
   button.textContent = label;
+}
+
+function togglePasswordVisibility() {
+  const nextType = elements.passwordInput.type === "password" ? "text" : "password";
+  elements.passwordInput.type = nextType;
 }
 
 function getInitials(name) {

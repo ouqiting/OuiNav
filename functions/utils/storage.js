@@ -28,6 +28,63 @@ export async function createLink(env, payload) {
   return nextLinks;
 }
 
+export async function updateLink(env, payload) {
+  if (!env.NAV_LINKS_KV) {
+    throw new Error("缺少 NAV_LINKS_KV 绑定，无法保存修改。");
+  }
+
+  const id = String(payload.id || "").trim();
+
+  if (!id) {
+    throw new Error("缺少链接 ID。");
+  }
+
+  const links = await readLinks(env);
+  const index = links.findIndex((item) => item.id === id);
+
+  if (index === -1) {
+    throw new Error("未找到要编辑的导航项。");
+  }
+
+  const existing = links[index];
+  const nextLink = normalizeLink({
+    ...existing,
+    ...payload,
+    id,
+  });
+  nextLink.id = id;
+
+  const nextLinks = [...links];
+  nextLinks[index] = nextLink;
+
+  await env.NAV_LINKS_KV.put(LINKS_KEY, JSON.stringify(nextLinks));
+
+  return nextLinks;
+}
+
+export async function deleteLink(env, id) {
+  if (!env.NAV_LINKS_KV) {
+    throw new Error("缺少 NAV_LINKS_KV 绑定，无法删除链接。");
+  }
+
+  const targetId = String(id || "").trim();
+
+  if (!targetId) {
+    throw new Error("缺少链接 ID。");
+  }
+
+  const links = await readLinks(env);
+  const nextLinks = links.filter((item) => item.id !== targetId);
+
+  if (nextLinks.length === links.length) {
+    throw new Error("未找到要删除的导航项。");
+  }
+
+  await env.NAV_LINKS_KV.put(LINKS_KEY, JSON.stringify(nextLinks));
+
+  return nextLinks;
+}
+
 function parseLinks(value) {
   try {
     const parsed = JSON.parse(value);
@@ -38,6 +95,7 @@ function parseLinks(value) {
 }
 
 function normalizeLink(payload) {
+  const id = String(payload.id || "").trim();
   const name = String(payload.name || "").trim();
   const description = String(payload.description || "").trim();
   const icon = String(payload.icon || "").trim();
@@ -52,7 +110,7 @@ function normalizeLink(payload) {
   }
 
   return {
-    id: crypto.randomUUID(),
+    id: id || crypto.randomUUID(),
     name: name.slice(0, 40),
     description: description.slice(0, 90),
     url,
