@@ -52,6 +52,7 @@ const elements = {
 boot();
 
 function boot() {
+  cleanupLegacyServiceWorkers();
   initializeTheme();
   bindEvents();
   renderLinks();
@@ -284,4 +285,26 @@ function loadImage(src) {
     image.onerror = () => reject(new Error("Image load failed"));
     image.src = src;
   });
+}
+
+async function cleanupLegacyServiceWorkers() {
+  if (!("serviceWorker" in navigator)) {
+    return;
+  }
+
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.unregister()));
+  } catch (error) {
+    console.error(error);
+  }
+
+  if ("caches" in window) {
+    try {
+      const cacheKeys = await caches.keys();
+      await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+    } catch (error) {
+      console.error(error);
+    }
+  }
 }
