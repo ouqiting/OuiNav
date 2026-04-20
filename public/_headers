@@ -3,3 +3,22 @@
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
   Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/index.html
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/preview.html
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/app.js
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/preview.js
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/styles.css
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/assets/*
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
