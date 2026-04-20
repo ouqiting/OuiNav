@@ -1,0 +1,13 @@
+{
+  "name": "odysseia-guidance-nav",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler pages dev public",
+    "deploy": "wrangler pages deploy public",
+    "check": "node --check public/app.js && node --check functions/api/auth.js && node --check functions/api/session.js && node --check functions/api/links.js && node --check functions/utils/auth.js && node --check functions/utils/storage.js && node --check functions/utils/response.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.13.2"
+  }
+}

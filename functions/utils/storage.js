@@ -1,0 +1,79 @@
+const LINKS_KEY = "nav_links";
+
+export async function readLinks(env) {
+  const kvValue = env.NAV_LINKS_KV ? await env.NAV_LINKS_KV.get(LINKS_KEY) : null;
+
+  if (kvValue) {
+    return parseLinks(kvValue);
+  }
+
+  if (env.DEFAULT_LINKS_JSON) {
+    return parseLinks(String(env.DEFAULT_LINKS_JSON));
+  }
+
+  return [];
+}
+
+export async function createLink(env, payload) {
+  if (!env.NAV_LINKS_KV) {
+    throw new Error("缺少 NAV_LINKS_KV 绑定，无法保存新链接。");
+  }
+
+  const links = await readLinks(env);
+  const link = normalizeLink(payload);
+  const nextLinks = [link, ...links];
+
+  await env.NAV_LINKS_KV.put(LINKS_KEY, JSON.stringify(nextLinks));
+
+  return nextLinks;
+}
+
+function parseLinks(value) {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter(isLinkShape) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function normalizeLink(payload) {
+  const name = String(payload.name || "").trim();
+  const description = String(payload.description || "").trim();
+  const icon = String(payload.icon || "").trim();
+  const url = normalizeUrl(payload.url);
+
+  if (!name) {
+    throw new Error("名称不能为空。");
+  }
+
+  if (!url) {
+    throw new Error("网址格式不正确，请使用 http 或 https 开头。");
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    name: name.slice(0, 40),
+    description: description.slice(0, 90),
+    url,
+    icon: icon.slice(0, 250000),
+  };
+}
+
+function normalizeUrl(value) {
+  try {
+    const parsed = new URL(String(value || "").trim());
+
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return "";
+    }
+
+    return parsed.toString();
+  } catch (error) {
+    return "";
+  }
+}
+
+function isLinkShape(item) {
+  return item && typeof item.name === "string" && typeof item.url === "string";
+}
