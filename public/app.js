@@ -37,6 +37,8 @@ const elements = {
   createTitle: document.querySelector("#createTitle"),
   iconInput: document.querySelector("#iconInput"),
   iconPreview: document.querySelector("#iconPreview"),
+  iconPreviewImage: document.querySelector("#iconPreviewImage"),
+  iconPreviewText: document.querySelector("#iconPreviewText"),
 };
 
 boot();
@@ -189,9 +191,7 @@ function openEditModal(link) {
   state.pendingIconDataUrl = link.icon || "";
 
   if (link.icon) {
-    elements.iconPreview.classList.add("has-image");
-    elements.iconPreview.style.backgroundImage = `url("${link.icon}")`;
-    elements.iconPreview.textContent = "";
+    renderIconPreview(link.icon);
   } else {
     resetIconPreview();
   }
@@ -281,9 +281,7 @@ async function handleIconChange(event) {
 
   try {
     state.pendingIconDataUrl = await imageFileToDataUrl(file, 112);
-    elements.iconPreview.classList.add("has-image");
-    elements.iconPreview.style.backgroundImage = `url("${state.pendingIconDataUrl}")`;
-    elements.iconPreview.textContent = "";
+    renderIconPreview(state.pendingIconDataUrl);
   } catch (error) {
     resetIconPreview();
     showError(elements.createError, "图标处理失败，请换一张图片再试。");
@@ -328,8 +326,16 @@ function applyTheme(theme) {
 function resetIconPreview() {
   state.pendingIconDataUrl = "";
   elements.iconPreview.classList.remove("has-image");
-  elements.iconPreview.style.backgroundImage = "";
-  elements.iconPreview.textContent = "图标预览";
+  elements.iconPreviewImage.src = "";
+  elements.iconPreviewImage.classList.add("hidden");
+  elements.iconPreviewText.classList.remove("hidden");
+}
+
+function renderIconPreview(src) {
+  elements.iconPreview.classList.add("has-image");
+  elements.iconPreviewImage.src = src;
+  elements.iconPreviewImage.classList.remove("hidden");
+  elements.iconPreviewText.classList.add("hidden");
 }
 
 function showError(node, message) {
