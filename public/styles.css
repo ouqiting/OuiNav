@@ -616,7 +616,7 @@ html[data-theme="dark"] .overlay {
   }
 
   .service-card {
-    grid-template-columns: 24px 44px minmax(0, 1fr) 96px;
+    grid-template-columns: 24px 44px minmax(0, 1fr) 120px;
     align-items: center;
     gap: 6px;
     min-height: 0;
@@ -664,7 +664,7 @@ html[data-theme="dark"] .overlay {
   }
 
   .service-actions {
-    width: 96px;
+    width: 120px;
     justify-content: flex-end;
     flex-wrap: nowrap;
     gap: 4px;
@@ -673,12 +673,12 @@ html[data-theme="dark"] .overlay {
   }
 
   .action-button {
-    min-width: 44px;
+    min-width: 56px;
     min-height: 28px;
     padding: 0 8px;
     border-radius: 9px;
     font-size: 0.74rem;
-    flex: 0 0 44px;
+    flex: 0 0 56px;
   }
 
   .icon-preview-row {
