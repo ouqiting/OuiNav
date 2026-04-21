@@ -123,7 +123,9 @@ function renderLinks() {
     index.textContent = `#${indexValue + 1}`;
     cardLink.href = link.url;
     title.textContent = link.name;
-    description.textContent = link.description || "未填写描述";
+    const normalizedDescription = String(link.description || "").trim();
+    description.textContent = normalizedDescription;
+    description.classList.toggle("hidden", !normalizedDescription);
 
     if (link.icon) {
       inlineIconImage.src = link.icon;
